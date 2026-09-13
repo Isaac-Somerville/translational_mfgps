@@ -1,0 +1,65 @@
+{
+    "_description": "As iterative_prior_bep_dil_qui_ver, with oracle hyperparameters and conditioning set.",
+    "num_animal_species": 1,
+    "prior_drug_list": [
+        "bepridil",
+        "diltiazem",
+        "quinidine",
+        "verapamil"
+    ],
+    "num_humans_prior": 3,
+    "num_animals_prior": 9,
+    "human_concentration_idxs_prior": [
+        0,
+        1,
+        2,
+        3
+    ],
+    "animal_concentration_idxs_prior": [
+        0,
+        1,
+        2,
+        3
+    ],
+    "num_humans_target": 3,
+    "num_animals_target": 9,
+    "human_concentration_idxs_target": [
+        0,
+        1,
+        2,
+        3
+    ],
+    "animal_concentration_idxs_target": [
+        0,
+        1,
+        2,
+        3
+    ],
+    "num_repeats": 100,
+    "use_oracle": true,
+    "apd_type": "relative_noisy",
+    "conc_multiplier": 1,
+    "GP_type": "multitask",
+    "covar_rank": 1,
+    "noise_type": "heteroskedastic",
+    "ard_num_dims": 7,
+    "mean_function": "constant",
+    "boundary_constraint": "poly",
+    "pred_dist": "latent",
+    "subject_selection_seed": 42,
+    "num_iters": 100,
+    "training_seed": 42,
+    "num_post_concs": 50,
+    "num_post_samples": 50,
+    "post_samples_seed": 42,
+    "num_prior_sparse_concs": 10,
+    "num_post_sparse_concs": 10,
+    "rho_fixed": false,
+    "standardise_data": true,
+    "num_latents": 2,
+    "shared_mean": false,
+    "rho_prior": {
+        "loc": -2.414157,
+        "scale": 0.472381
+    }
+}

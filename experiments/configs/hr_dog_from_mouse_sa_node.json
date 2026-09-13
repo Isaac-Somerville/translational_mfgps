@@ -1,0 +1,36 @@
+{
+    "_description": "Heart rate: predict Dog SA-node rate using Mouse as low fidelity; k-sweep.",
+    "GP_type": "multitask",
+    "noise_type": "homoskedastic",
+    "mean_function": "linear",
+    "num_repeats": 100,
+    "num_iters": 200,
+    "training_seed": 42,
+    "subject_selection_seed": 42,
+    "post_samples_seed": 42,
+    "num_post_samples": 500,
+    "num_post_concs": 100,
+    "ard_num_dims": null,
+    "covar_rank": 1,
+    "k_fold_leave_out": 5,
+    "qoi": "sa_node",
+    "high_fidelity_species": "Dog",
+    "low_fidelity_species": [
+        "Mouse"
+    ],
+    "standardise_data": true,
+    "run_human_only_comparison": true,
+    "train_human_separately": true,
+    "shared_noise": true,
+    "shared_mean": true,
+    "ls_prior": {
+        "loc": 2.28297,
+        "scale": 0.198042
+    },
+    "index_kernel_prior": {
+        "var_loc": -0.0430888,
+        "var_scale": 0.29356,
+        "scale": 1.0
+    },
+    "use_signed_mean": true
+}

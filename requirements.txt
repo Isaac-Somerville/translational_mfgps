@@ -1,0 +1,28 @@
+# Python 3.13.1
+#
+# Direct dependencies, pinned to the versions the published results were produced
+# with.  Install with:
+#
+#     python -m venv .venv && source .venv/bin/activate
+#     pip install -r requirements.txt
+#
+# Transitive pins (linear-operator, pyro-ppl, jaxtyping) are listed explicitly
+# because GPyTorch's resolver will otherwise pick newer releases whose default
+# numerical settings differ.
+#
+# This repository performs the statistical analysis only. The cardiac simulations
+# that produce data/simulations/*.csv live in the companion repository.
+
+torch==2.7.1
+gpytorch==1.14
+linear-operator==0.6
+pyro-ppl==1.9.1
+jaxtyping==0.3.2
+
+numpy==2.2.4
+scipy==1.15.2
+pandas==2.2.3
+statsmodels==0.14.5
+
+matplotlib==3.10.1
+seaborn==0.13.2
