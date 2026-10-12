@@ -66,7 +66,8 @@ REFERENCE_RESULTS = DATA_ROOT / "reference_results"
 # ---------------------------------------------------------------------------
 
 # Oracle hyperparameters: fitted once to the maximal training set and reused by
-# the configs with ``use_oracle: true``.
+# the configs with ``use_oracle: true``. Refit with experiments.fit_oracle, except
+# the sweep's, which run_single_drug_sweep fits when absent.
 GP_PARAMS = DATA_ROOT / "gp_params"
 
 # ---------------------------------------------------------------------------

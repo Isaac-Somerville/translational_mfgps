@@ -35,7 +35,7 @@
     "pred_dist": "latent",
     "subject_selection_seed": 24,
     "num_iters": 100,
-    "training_seed": 43,
+    "training_seed": 42,
     "num_post_concs": 50,
     "num_post_samples": 50,
     "post_samples_seed": 42,

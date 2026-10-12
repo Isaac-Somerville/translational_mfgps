@@ -31,19 +31,18 @@ import argparse
 
 import numpy as np
 import pandas as pd
-
-from drug import load_drug_table
 import torch
 
-from gp.data import (OBSERVATION_COLUMN, add_block_columns,
-                     apply_standardisation, build_tensors, channel_mask_for,
-                     compute_standardisation, drop_zero_block_rows,
+from drug import load_drug_table
+from gp.data import (OBSERVATION_COLUMN, add_block_columns, build_tensors,
+                     channel_mask_for, drop_zero_block_rows,
                      filter_training_concentrations, load_apd_dataset,
                      max_subjects_available, sample_subjects)
-from gp.fitting import build_model, fit_and_predict, train_model
+from gp.fitting import fit_and_predict
 from gp.plotting import plot_sweep_heatmaps
 from paths import (APD_DATASET, CHANNELS_TABLE, EXPERIMENTS_OUT, GP_PARAMS,
                    ensure, ground_truth_table)
+from experiments.fit_oracle import fit_oracle
 from experiments.run_single_drug import (ANIMAL_SPECIES, HIGH_FIDELITY,
                                          load_config)
 
@@ -62,6 +61,10 @@ MAX_AXIS = 30
 #: seed so the set is deterministic.
 MAX_ORACLE_ROWS = 2000
 ORACLE_SUBSAMPLE_SEED = 42
+
+#: Torch threads the shipped sweep checkpoints were fitted with. See
+#: :func:`sweep_oracle`.
+ORACLE_THREADS = 4
 
 
 def select_all_subjects(df, max_rows=MAX_ORACLE_ROWS, seed=ORACLE_SUBSAMPLE_SEED):
@@ -86,47 +89,31 @@ def select_all_subjects(df, max_rows=MAX_ORACLE_ROWS, seed=ORACLE_SUBSAMPLE_SEED
     return df[df["Subject_ID"].isin(kept)]
 
 
-def sweep_oracle(unfiltered, drug, species_list, species_idx, config,
-                 channel_mask, cache_path):
+def sweep_oracle(unfiltered, species_list, config, channel_mask, cache_path):
     """Fit (or load) the sweep's own oracle hyperparameters.
 
-    **The sweep does not reuse the single-drug experiment's oracle.** Its own is
-    fitted on the concentration-*unfiltered* data. Fitting it on the filtered
+    Fitted on the concentration-*unfiltered* data. Fitting it on the filtered
     concentrations instead collapses the prior response scale and shrinks the
     noise length-scale until the noise saturates immediately.
+
+    Those are the same rows as the single-drug oracle in
+    ``data/gp_params/<config>/``, but it is fitted with
+    :data:`ORACLE_THREADS` torch threads rather than the single thread
+    :mod:`experiments.fit_oracle` pins, so the two checkpoints differ
+    numerically. The shipped sweep checkpoints were fitted with four, so 
+    the count is pinned for the fit and restored afterwards.
 
     Returns the checkpoint path, fitting and caching it if absent.
     """
     if cache_path.exists():
         return cache_path
-
-    maximal = select_all_subjects(unfiltered)
-    X, y = build_tensors(
-        add_block_columns(maximal.dropna(subset=[OBSERVATION_COLUMN])),
-        species_idx,
-        conc_as_input=config.get("conc_as_input", False),
-        conc_multiplier=config["conc_multiplier"],
-    )
-    # Zero-block rows are dropped here too: the boundary constraint already
-    # pins f(0) = 0.
-    X, y = drop_zero_block_rows(X, y, config.get("boundary_constraint"))
-    X_raw = X.clone()
-    standardisation = compute_standardisation(X, y, config.get("boundary_constraint"))
-    apply_standardisation(X, y, standardisation)
-
-    model, likelihood, noise_model = build_model(
-        X, y, config, len(species_list), channel_mask, X_noise=X_raw
-    )
-    train_model(model, likelihood, noise_model, X, y, config, X_noise=X_raw)
-
-    cache_path.parent.mkdir(parents=True, exist_ok=True)
-    torch.save({
-        "model_state_dict": model.state_dict(),
-        "noise_state_dict": noise_model.state_dict(),
-        "standardisation_params": standardisation,
-    }, cache_path)
-    print(f"    [oracle] fitted on {len(maximal)} rows -> {cache_path.name}")
-    return cache_path
+    previous = torch.get_num_threads()
+    torch.set_num_threads(ORACLE_THREADS)
+    try:
+        return fit_oracle(select_all_subjects(unfiltered), species_list,
+                          config, channel_mask, cache_path)
+    finally:
+        torch.set_num_threads(previous)
 
 
 def sweep_grid(df, drug, species_list, max_humans_cap=MAX_AXIS,
@@ -273,7 +260,7 @@ def main():
                 # concentrations — see sweep_oracle.
                 oracle = sweep_oracle(
                     df[df["Species"].isin(species_list) & (df["Drug"] == drug)],
-                    drug, species_list, species_idx, config, channel_mask,
+                    species_list, config, channel_mask,
                     GP_PARAMS / f"{config_name}_sweep"
                     / animal_species.replace(" ", "_") / f"{drug}.pth",
                 )

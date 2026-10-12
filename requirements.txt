@@ -10,6 +10,10 @@
 # because GPyTorch's resolver will otherwise pick newer releases whose default
 # numerical settings differ.
 #
+# The one exception is scipy: the published results used 1.15.2, whose macOS
+# wheels fail to load on macOS 27. With 1.16.0 every output CSV, and subsets of
+# every experiment's published per-repeat scores, reproduce bit-for-bit.
+#
 # This repository performs the statistical analysis only. The cardiac simulations
 # that produce data/simulations/*.csv live in the companion repository.
 
@@ -20,7 +24,7 @@ pyro-ppl==1.9.1
 jaxtyping==0.3.2
 
 numpy==2.2.4
-scipy==1.15.2
+scipy==1.16.0
 pandas==2.2.3
 statsmodels==0.14.5
 

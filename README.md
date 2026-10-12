@@ -37,7 +37,10 @@ python -m heart_rate.run_heart_rate   --config hr_human_from_dog_autonomic
 
 Results are written under `outputs/`. Configs live in `experiments/configs/`;
 `data/gp_params/` holds hyperparameters fitted once to the maximal dataset and
-reused by configs with `use_oracle: true`.
+reused by configs with `use_oracle: true`. `experiments.fit_oracle` refits all
+but the sweep's, which `experiments.run_single_drug_sweep` fits when absent;
+both pin the torch thread count the shipped ones were fitted with (see
+"Verifying a reproduction").
 
 ## Experimental configurations
 
@@ -60,6 +63,13 @@ In dependency order. Every command writes to `outputs/`, mirroring the figure
 and table layout of the paper.
 
 ```bash
+# 0. Oracle hyperparameters (optional: shipped in data/gp_params/)  (minutes)
+#    Writes to outputs/gp_params/<config>/; copy over data/gp_params/ to use.
+python -m experiments.fit_oracle --config single_drug_1x
+python -m experiments.fit_oracle --config single_drug_3x
+python -m experiments.fit_oracle --config iterative_prior_bep_dil_qui_ver_oracle
+python -m experiments.fit_oracle --config iterative_prior_bep_dil_dof_ver_oracle
+
 # 1. Single-drug experiments, both concentration ranges  (~1-2 h each)
 python -m experiments.run_single_drug --config single_drug_1x
 python -m experiments.run_single_drug --config single_drug_3x
@@ -80,12 +90,19 @@ python -m heart_rate.plot_athlete_crps_improvement
 # 5. Exploratory figures and paper tables               (seconds)
 python -m eda.plot_ground_truth_curves
 python -m eda.plot_hill_curves
-python -m eda.plot_trajectory_geometry
+python -m eda.plot_trajectory_geometry --conc-multiplier 3
 python -m figures.transfer_learning_illustration
 ```
 
 Timings are for a single CPU core; nothing here needs a GPU. Add `--drug` and
 `--species` to any experiment runner to run one cell of the grid.
+
+`run_iterative` is the exception: for the first held-out drug of an invocation,
+repeats 0-19 make extra predictions that draw from the same random stream, so
+the `animal` and `human` scenarios depend on which drug comes first. To
+reproduce published values for a subset, lead `--drug` with the config's first
+held-out drug (the first drug in `data/cipa/` order that is not in the prior),
+e.g. `--drug bepridil cisapride` for `iterative_prior_qui_ver`.
 
 ## Verifying a reproduction
 
@@ -97,7 +114,14 @@ python -m verification.verify_gp_experiments --sweep  # and the sweep surfaces
 Both run against the references in `data/reference_results/`.
 `data/reference_results/*_per_repeat.csv` hold the published
 per-repeat scores, and the check compares repeat-wise
-directly. The tolerance is set at the floating-point level (1e-9).
+directly at the floating-point level (relative 1e-9).
+
+Oracle fits are sensitive to torch's thread count: a refit under a different
+count can differ from the shipped checkpoint by more than floating-point
+error. `experiments.fit_oracle` pins one thread and the sweep's lazy refit pins
+four, as the shipped checkpoints were fitted. With the checkpoints in
+`data/gp_params/` present, the experiment outputs do not depend on the thread
+count.
 
 ## Relationship to the simulation repository
 
